@@ -9,6 +9,7 @@ import HUDTopBar from "./HUDTopBar";
 import HUDLeftPanel from "./HUDLeftPanel";
 import HUDRightPanel from "./HUDRightPanel";
 import SettingsModal from "./SettingsModal";
+import HUDDecorations from "./HUDDecorations";
 
 type HUDState = "idle" | "listening" | "thinking" | "speaking";
 
@@ -57,6 +58,9 @@ export default function JarvisHUD() {
     >
       {/* Animated scan line */}
       <div className="scan-line-container absolute inset-0 pointer-events-none z-10" />
+
+      {/* HUD decorative fill elements */}
+      <HUDDecorations />
 
       {/* Boot flash */}
       {showBoot && (

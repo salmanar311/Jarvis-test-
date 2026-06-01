@@ -1,4 +1,5 @@
-const ELEVENLABS_VOICE_ID = "onwK4e9ZLuTAKqWW03F9"; // Daniel — British, calm, deep
+// George — British, warm, authoritative — closest to JARVIS / Paul Bettany
+const ELEVENLABS_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
 
 export async function speakWithElevenLabs(text: string, apiKey: string): Promise<void> {
   const response = await fetch(
@@ -11,11 +12,11 @@ export async function speakWithElevenLabs(text: string, apiKey: string): Promise
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_turbo_v2",
+        model_id: "eleven_multilingual_v2",
         voice_settings: {
-          stability: 0.75,
-          similarity_boost: 0.85,
-          style: 0.2,
+          stability: 0.55,
+          similarity_boost: 0.75,
+          style: 0.35,
           use_speaker_boost: true,
         },
       }),
