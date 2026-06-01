@@ -1,0 +1,258 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --hud-bg: #000a14;
+  --hud-cyan: #00d4ff;
+  --hud-blue: #0088cc;
+  --hud-orange: #ff6600;
+  --hud-text: #e0f4ff;
+  --hud-muted: #4a7a9b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background-color: var(--hud-bg);
+  color: var(--hud-text);
+  font-family: 'Space Mono', monospace;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 20, 40, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hud-cyan);
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.6);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00f0ff;
+}
+
+/* Glow utility classes */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4), 0 0 40px rgba(0, 212, 255, 0.15);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+}
+
+.glow-orange {
+  box-shadow: 0 0 15px rgba(255, 102, 0, 0.5);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+.text-glow-orange {
+  text-shadow: 0 0 10px rgba(255, 102, 0, 0.8), 0 0 20px rgba(255, 102, 0, 0.4);
+}
+
+.border-glow-cyan {
+  border-color: var(--hud-cyan);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3), inset 0 0 10px rgba(0, 212, 255, 0.05);
+}
+
+/* HUD panel */
+.hud-panel {
+  background: rgba(0, 20, 40, 0.85);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1), inset 0 0 30px rgba(0, 212, 255, 0.03);
+  backdrop-filter: blur(10px);
+}
+
+/* Scan line effect */
+.scan-line-container {
+  overflow: hidden;
+}
+
+.scan-line-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(transparent, rgba(0, 212, 255, 0.15), transparent);
+  animation: scan-line 6s linear infinite;
+  pointer-events: none;
+}
+
+/* Keyframe animations */
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotate-slow-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 20s linear infinite;
+}
+
+.animate-rotate-slow-reverse {
+  animation: rotate-slow-reverse 15s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+/* Typing indicator */
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--hud-cyan);
+  border-radius: 50%;
+  display: inline-block;
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Corner decorations */
+.corner-tl::before,
+.corner-tl::after {
+  content: '';
+  position: absolute;
+}
+
+.corner-tl::before {
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  background: var(--hud-cyan);
+}
+
+.corner-tl::after {
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 20px;
+  background: var(--hud-cyan);
+}
+
+/* HUD grid background */
+.hud-grid {
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Input focus glow */
+.hud-input:focus {
+  outline: none;
+  border-color: var(--hud-cyan);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+/* Button styles */
+.hud-btn {
+  border: 1px solid var(--hud-cyan);
+  color: var(--hud-cyan);
+  background: rgba(0, 212, 255, 0.05);
+  transition: all 0.2s ease;
+  font-family: 'Space Mono', monospace;
+  cursor: pointer;
+}
+
+.hud-btn:hover {
+  background: rgba(0, 212, 255, 0.15);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+.hud-btn-orange {
+  border-color: var(--hud-orange);
+  color: var(--hud-orange);
+  background: rgba(255, 102, 0, 0.05);
+}
+
+.hud-btn-orange:hover {
+  background: rgba(255, 102, 0, 0.15);
+  box-shadow: 0 0 15px rgba(255, 102, 0, 0.4);
+}
+
+/* Mic button pulse */
+@keyframes mic-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 15px rgba(255, 102, 0, 0);
+  }
+}
+
+.mic-listening {
+  animation: mic-pulse 1.5s ease-in-out infinite;
+}
