@@ -90,16 +90,22 @@ function SidebarTab({ tab, active, onClick }: { tab: { id: Tab; label: string; i
 export default function JarvisInterface() {
   const [activeTab, setActiveTab] = useState<Tab>("chat");
   const [apiKey, setApiKey] = useState("");
+  const [elevenLabsKey, setElevenLabsKey] = useState("");
   const { time, date } = useCurrentTime();
 
   useEffect(() => {
-    const stored = localStorage.getItem("jarvis_api_key") || "";
-    setApiKey(stored);
+    setApiKey(localStorage.getItem("jarvis_api_key") || "");
+    setElevenLabsKey(localStorage.getItem("jarvis_elevenlabs_key") || "");
   }, []);
 
   const handleSaveKey = (key: string) => {
     setApiKey(key);
     localStorage.setItem("jarvis_api_key", key);
+  };
+
+  const handleSaveElevenLabs = (key: string) => {
+    setElevenLabsKey(key);
+    localStorage.setItem("jarvis_elevenlabs_key", key);
   };
 
   const handleNeedApiKey = () => setActiveTab("settings");
@@ -196,10 +202,10 @@ export default function JarvisInterface() {
             <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-hud-cyan/50 pointer-events-none" />
             <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-hud-cyan/50 pointer-events-none" />
             <div className="h-full flex flex-col overflow-hidden">
-              {activeTab === "chat" && <ChatPanel apiKey={apiKey} onNeedApiKey={handleNeedApiKey} />}
+              {activeTab === "chat" && <ChatPanel apiKey={apiKey} elevenLabsKey={elevenLabsKey} onNeedApiKey={handleNeedApiKey} />}
               {activeTab === "tasks" && <TaskPanel />}
               {activeTab === "search" && <SearchPanel />}
-              {activeTab === "settings" && <SettingsPanel apiKey={apiKey} onSave={handleSaveKey} />}
+              {activeTab === "settings" && <SettingsPanel apiKey={apiKey} onSave={handleSaveKey} elevenLabsKey={elevenLabsKey} onSaveElevenLabs={handleSaveElevenLabs} />}
             </div>
           </div>
         </main>

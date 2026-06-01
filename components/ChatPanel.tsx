@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Volume2, VolumeX, Trash2, KeyRound } from "lucide-react";
 import VoiceButton, { speakText } from "./VoiceButton";
 import { streamJarvisResponse, ChatMessage } from "@/lib/jarvis-ai";
+import { speakWithElevenLabs } from "@/lib/elevenlabs";
 
 interface Message {
   id: string;
@@ -14,10 +15,11 @@ interface Message {
 
 interface ChatPanelProps {
   apiKey: string;
+  elevenLabsKey: string;
   onNeedApiKey: () => void;
 }
 
-export default function ChatPanel({ apiKey, onNeedApiKey }: ChatPanelProps) {
+export default function ChatPanel({ apiKey, elevenLabsKey, onNeedApiKey }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -86,7 +88,11 @@ export default function ChatPanel({ apiKey, onNeedApiKey }: ChatPanelProps) {
             .replace(/`(.*?)`/g, "$1")
             .replace(/#{1,6}\s/g, "")
             .trim();
-          speakText(clean);
+          if (elevenLabsKey) {
+            speakWithElevenLabs(clean, elevenLabsKey).catch(() => speakText(clean));
+          } else {
+            speakText(clean);
+          }
         }
       } catch (error: unknown) {
         const msg =
