@@ -186,8 +186,8 @@ export default function VoiceController({
 
   const buttonColor = {
     idle: "border-cyan-500 text-cyan-400 bg-cyan-900/10 hover:bg-cyan-900/30 hover:border-cyan-400",
-    listening: "border-orange-500 text-orange-400 bg-orange-900/20 mic-listening",
-    thinking: "border-yellow-500 text-yellow-400 bg-yellow-900/10",
+    listening: "border-cyan-400 text-cyan-300 bg-cyan-900/20 mic-listening",
+    thinking: "border-cyan-600 text-cyan-500 bg-cyan-900/10",
     speaking: "border-cyan-400 text-cyan-300 bg-cyan-900/20",
   }[hudState];
 
@@ -199,7 +199,7 @@ export default function VoiceController({
         className={`w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${buttonColor}`}
         style={
           hudState === "listening"
-            ? { boxShadow: "0 0 20px rgba(255,102,0,0.6), 0 0 40px rgba(255,102,0,0.3)" }
+            ? { boxShadow: "0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,212,255,0.3)" }
             : hudState === "speaking"
             ? { boxShadow: "0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,212,255,0.3)" }
             : {}
@@ -210,9 +210,9 @@ export default function VoiceController({
       <div
         className={`text-xs tracking-[0.3em] font-mono font-bold transition-colors duration-300 ${
           hudState === "listening"
-            ? "text-orange-400"
+            ? "text-cyan-300"
             : hudState === "thinking"
-            ? "text-yellow-400"
+            ? "text-cyan-500"
             : hudState === "speaking"
             ? "text-cyan-300"
             : "text-cyan-600"
