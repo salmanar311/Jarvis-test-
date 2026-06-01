@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
 import { Mic } from "lucide-react";
 import { streamJarvisResponse, ChatMessage } from "@/lib/jarvis-ai";
 import { speakWithElevenLabs } from "@/lib/elevenlabs";
@@ -65,7 +65,10 @@ function browserSpeak(text: string): Promise<void> {
   });
 }
 
-export default function VoiceController({
+export interface VoiceControllerHandle { startListening: () => void; }
+
+const VoiceController = forwardRef<VoiceControllerHandle, VoiceControllerProps>(function VoiceController(
+{
   apiKey,
   elevenLabsKey,
   hudState,
@@ -76,8 +79,9 @@ export default function VoiceController({
   conversationHistory,
   setConversationHistory,
   onNeedApiKey,
-}: VoiceControllerProps) {
+}: VoiceControllerProps, ref: React.Ref<VoiceControllerHandle>) {
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
+  useImperativeHandle(ref, () => ({ startListening }));
   const [speechSupported] = useState(() => {
     if (typeof window === "undefined") return false;
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -237,4 +241,6 @@ export default function VoiceController({
       )}
     </div>
   );
-}
+});
+
+export default VoiceController;
