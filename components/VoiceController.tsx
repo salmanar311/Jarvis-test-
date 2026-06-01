@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
+import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from "react";
 import { Mic } from "lucide-react";
 import { streamJarvisResponse, ChatMessage } from "@/lib/jarvis-ai";
 import { speakWithElevenLabs } from "@/lib/elevenlabs";
@@ -81,7 +81,63 @@ const VoiceController = forwardRef<VoiceControllerHandle, VoiceControllerProps>(
   onNeedApiKey,
 }: VoiceControllerProps, ref: React.Ref<VoiceControllerHandle>) {
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
+  const clapAudioRef = useRef<AudioContext | null>(null);
+  const clapAnalyserRef = useRef<AnalyserNode | null>(null);
+  const clapFrameRef = useRef<number | null>(null);
+  const lastClapRef = useRef<number>(0);
+  const hudStateRef = useRef(hudState);
+  useEffect(() => { hudStateRef.current = hudState; }, [hudState]);
+
   useImperativeHandle(ref, () => ({ startListening }));
+
+  // Clap detection — runs always after mount
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+
+    const start = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        clapAudioRef.current = ctx;
+        clapAnalyserRef.current = analyser;
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        let prevAvg = 0;
+
+        const detect = () => {
+          analyser.getByteFrequencyData(data);
+          const avg = data.reduce((a, b) => a + b, 0) / data.length;
+          const now = Date.now();
+          // Clap = sudden spike > 3x previous average, min 1.5s between claps
+          if (avg > prevAvg * 3 && avg > 30 && now - lastClapRef.current > 1500) {
+            lastClapRef.current = now;
+            // Only trigger if idle — don't interrupt Jarvis speaking
+            if (hudStateRef.current === "idle") {
+              startListening();
+            }
+          }
+          prevAvg = avg * 0.3 + prevAvg * 0.7; // smooth
+          clapFrameRef.current = requestAnimationFrame(detect);
+        };
+        detect();
+      } catch {
+        // Mic permission denied — clap detection unavailable, silent fail
+      }
+    };
+
+    start();
+
+    return () => {
+      if (clapFrameRef.current) cancelAnimationFrame(clapFrameRef.current);
+      clapAudioRef.current?.close();
+      stream?.getTracks().forEach(t => t.stop());
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [speechSupported] = useState(() => {
     if (typeof window === "undefined") return false;
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
