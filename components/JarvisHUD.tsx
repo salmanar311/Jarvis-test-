@@ -27,7 +27,6 @@ export default function JarvisHUD() {
     setApiKey(localStorage.getItem("jarvis_api_key") || "");
     setElevenLabsKey(localStorage.getItem("jarvis_elevenlabs_key") || "");
 
-    // Boot sequence
     const timer1 = setTimeout(() => setBootMessage("J.A.R.V.I.S. INITIALIZED"), 800);
     const timer2 = setTimeout(() => setBootMessage("ALL SYSTEMS NOMINAL"), 1600);
     const timer3 = setTimeout(() => setShowBoot(false), 2800);
@@ -53,7 +52,7 @@ export default function JarvisHUD() {
 
   return (
     <div
-      className="relative flex flex-col h-screen overflow-hidden hud-grid"
+      className="relative h-screen overflow-hidden hud-grid"
       style={{ backgroundColor: "#000a14" }}
     >
       {/* Animated scan line */}
@@ -64,7 +63,10 @@ export default function JarvisHUD() {
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div
             className="text-cyan-400 font-bold tracking-[0.5em] text-xl font-mono"
-            style={{ textShadow: "0 0 20px rgba(0,212,255,0.9), 0 0 40px rgba(0,212,255,0.5)", animation: "fadeInUp 0.4s ease-out forwards" }}
+            style={{
+              textShadow: "0 0 20px rgba(0,212,255,0.9), 0 0 40px rgba(0,212,255,0.5)",
+              animation: "fadeInUp 0.4s ease-out forwards",
+            }}
           >
             {bootMessage}
           </div>
@@ -83,47 +85,60 @@ export default function JarvisHUD() {
       {/* Top bar */}
       <HUDTopBar />
 
-      {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden gap-2 p-2 min-h-0">
-        {/* Left panel */}
-        <div className="w-48 flex-shrink-0">
-          <HUDLeftPanel hudState={hudState} />
-        </div>
+      {/* Left panels — absolutely positioned, floating */}
+      <HUDLeftPanel hudState={hudState} />
 
-        {/* Center panel */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 min-w-0">
-          {/* Arc Reactor */}
-          <ArcReactor state={hudState} />
+      {/* Right panels — absolutely positioned, floating */}
+      <HUDRightPanel
+        lastTranscript={lastTranscript}
+        lastResponse={lastResponse}
+        conversationCount={conversationHistory.length / 2}
+      />
 
-          {/* Voice Controller */}
-          <VoiceController
-            apiKey={apiKey}
-            elevenLabsKey={elevenLabsKey}
-            hudState={hudState}
-            setHudState={setHudState}
-            setLastTranscript={setLastTranscript}
-            setLastResponse={setLastResponse}
-            appendResponse={appendResponse}
-            conversationHistory={conversationHistory}
-            setConversationHistory={setConversationHistory}
-            onNeedApiKey={handleNeedApiKey}
-          />
-        </div>
-
-        {/* Right panel */}
-        <div className="w-64 flex-shrink-0">
-          <HUDRightPanel
-            lastTranscript={lastTranscript}
-            lastResponse={lastResponse}
-            conversationCount={conversationHistory.length / 2}
-          />
-        </div>
+      {/* Central Arc Reactor — absolutely centered */}
+      <div
+        className="absolute"
+        style={{
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 5,
+        }}
+      >
+        <ArcReactor state={hudState} />
       </div>
 
-      {/* Bottom bar */}
-      <div className="flex-shrink-0 border-t border-cyan-500/20 bg-black/60 backdrop-blur-sm px-6 py-2 flex items-center justify-between">
-        <span className="text-cyan-800 text-xs tracking-widest font-mono">STARK INDUSTRIES © 3000</span>
-        <span className="text-cyan-600 text-xs tracking-[0.3em] font-mono font-bold">
+      {/* Voice controller — below center */}
+      <div
+        className="absolute"
+        style={{
+          bottom: "5vh",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 20,
+        }}
+      >
+        <VoiceController
+          apiKey={apiKey}
+          elevenLabsKey={elevenLabsKey}
+          hudState={hudState}
+          setHudState={setHudState}
+          setLastTranscript={setLastTranscript}
+          setLastResponse={setLastResponse}
+          appendResponse={appendResponse}
+          conversationHistory={conversationHistory}
+          setConversationHistory={setConversationHistory}
+          onNeedApiKey={handleNeedApiKey}
+        />
+      </div>
+
+      {/* Bottom status bar */}
+      <div
+        className="absolute bottom-0 left-0 right-0 px-6 py-1.5 flex items-center justify-between z-20"
+        style={{ pointerEvents: "none" }}
+      >
+        <span className="text-cyan-800 text-[10px] tracking-widest font-mono">STARK INDUSTRIES © 3000</span>
+        <span className="text-cyan-600 text-[10px] tracking-[0.3em] font-mono font-bold">
           {hudState === "idle"
             ? "TAP MICROPHONE TO SPEAK"
             : hudState === "listening"
@@ -132,7 +147,7 @@ export default function JarvisHUD() {
             ? "NEURAL PROCESSING..."
             : "AUDIO OUTPUT ACTIVE"}
         </span>
-        <span className="text-cyan-800 text-xs tracking-widest font-mono">MODEL: CLAUDE SONNET 4.6</span>
+        <span className="text-cyan-800 text-[10px] tracking-widest font-mono">MODEL: CLAUDE SONNET 4.6</span>
       </div>
 
       {/* Settings modal */}

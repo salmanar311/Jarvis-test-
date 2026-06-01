@@ -8,54 +8,24 @@ interface HUDLeftPanelProps {
   hudState: HUDState;
 }
 
-function CornerBracket() {
-  return (
-    <>
-      <div className="absolute top-0 left-0 w-4 h-px bg-cyan-400" />
-      <div className="absolute top-0 left-0 w-px h-4 bg-cyan-400" />
-      <div className="absolute top-0 right-0 w-4 h-px bg-cyan-400" />
-      <div className="absolute top-0 right-0 w-px h-4 bg-cyan-400" />
-      <div className="absolute bottom-0 left-0 w-4 h-px bg-cyan-400" />
-      <div className="absolute bottom-0 left-0 w-px h-4 bg-cyan-400" />
-      <div className="absolute bottom-0 right-0 w-4 h-px bg-cyan-400" />
-      <div className="absolute bottom-0 right-0 w-px h-4 bg-cyan-400" />
-    </>
-  );
-}
-
 export default function HUDLeftPanel({ hudState }: HUDLeftPanelProps) {
-  const [uptime, setUptime] = useState(0);
-  const [cpu, setCpu] = useState(42);
-  const [mem, setMem] = useState(61);
-  const [energy, setEnergy] = useState(97);
+  const [date, setDate] = useState({ month: '', day: '', dow: '' });
+  const [storage] = useState({ primary: 73, free: 27 });
+  const [power] = useState(97);
 
   useEffect(() => {
-    const id = setInterval(() => setUptime(u => u + 1), 1000);
-    return () => clearInterval(id);
+    const now = new Date();
+    setDate({
+      month: now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+      day: now.getDate().toString(),
+      dow: now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+    });
   }, []);
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setCpu(c => Math.min(99, Math.max(20, c + (Math.random() - 0.48) * 5)));
-      setMem(m => Math.min(85, Math.max(55, m + (Math.random() - 0.5) * 2)));
-      setEnergy(e => Math.min(100, Math.max(93, e + (Math.random() - 0.5) * 1)));
-    }, 1500);
-    return () => clearInterval(id);
-  }, []);
-
-  const formatUptime = (s: number) => {
-    const h = Math.floor(s / 3600).toString().padStart(2, '0');
-    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
-    const sec = (s % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${sec}`;
-  };
-
-  const stateColor = {
-    idle: 'text-cyan-400',
-    listening: 'text-green-400',
-    thinking: 'text-yellow-400',
-    speaking: 'text-cyan-300',
-  }[hudState];
+  const stateColor = hudState === 'speaking' ? '#00d4ff'
+    : hudState === 'listening' ? '#00ff88'
+    : hudState === 'thinking' ? '#ff9900'
+    : '#0077aa';
 
   const stateLabel = {
     idle: 'STANDBY',
@@ -64,111 +34,108 @@ export default function HUDLeftPanel({ hudState }: HUDLeftPanelProps) {
     speaking: 'SPEAKING',
   }[hudState];
 
-  const stateDot = {
-    idle: 'bg-cyan-400',
-    listening: 'bg-green-400',
-    thinking: 'bg-yellow-400',
-    speaking: 'bg-cyan-300',
-  }[hudState];
+  // Arc path for circle gauge
+  const gaugePath = (pct: number, r: number, cx: number, cy: number) => {
+    const angle = (pct / 100) * 2 * Math.PI - Math.PI / 2;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    const large = pct > 50 ? 1 : 0;
+    const startX = cx;
+    const startY = cy - r;
+    return `M ${startX} ${startY} A ${r} ${r} 0 ${large} 1 ${x} ${y}`;
+  };
 
   return (
-    <div className="hud-panel relative p-4 flex flex-col gap-4 h-full">
-      <CornerBracket />
-      <div className="text-cyan-500 text-xs tracking-widest border-b border-cyan-500/20 pb-2">
-        SYSTEM STATUS
-      </div>
-
-      {/* AI Status */}
-      <div className="relative bg-black/40 border border-cyan-500/20 p-3 rounded">
-        <CornerBracket />
-        <div className="text-cyan-600 text-xs tracking-wider mb-1">AI CORE</div>
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full animate-pulse ${stateDot}`} />
-          <span className={`text-sm font-bold tracking-wider ${stateColor}`}>{stateLabel}</span>
-        </div>
-      </div>
-
-      {/* Uptime */}
-      <div className="relative bg-black/40 border border-cyan-500/20 p-3 rounded">
-        <CornerBracket />
-        <div className="text-cyan-600 text-xs tracking-wider mb-1">UPTIME</div>
-        <div className="text-cyan-300 text-lg font-bold font-mono">{formatUptime(uptime)}</div>
-      </div>
-
-      {/* CPU */}
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-cyan-600 tracking-wider">CPU</span>
-          <span className="text-cyan-400">{Math.round(cpu)}%</span>
-        </div>
-        <div className="h-1.5 bg-black/60 border border-cyan-500/20 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-cyan-500 rounded-full transition-all duration-500"
-            style={{ width: `${cpu}%`, boxShadow: '0 0 6px #00d4ff' }}
-          />
-        </div>
-      </div>
-
-      {/* Memory */}
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-cyan-600 tracking-wider">MEMORY</span>
-          <span className="text-cyan-400">{Math.round(mem)}%</span>
-        </div>
-        <div className="h-1.5 bg-black/60 border border-cyan-500/20 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-blue-500 rounded-full transition-all duration-500"
-            style={{ width: `${mem}%`, boxShadow: '0 0 6px #0088cc' }}
-          />
-        </div>
-      </div>
-
-      {/* Energy */}
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-cyan-600 tracking-wider">ARC ENERGY</span>
-          <span className="text-green-400">{Math.round(energy)}%</span>
-        </div>
-        <div className="h-1.5 bg-black/60 border border-cyan-500/20 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-green-500 rounded-full transition-all duration-500"
-            style={{ width: `${energy}%`, boxShadow: '0 0 6px #00ff88' }}
-          />
-        </div>
-      </div>
-
-      {/* Voice status */}
-      <div className="relative bg-black/40 border border-cyan-500/20 p-3 rounded">
-        <CornerBracket />
-        <div className="text-cyan-600 text-xs tracking-wider mb-2">VOICE SYSTEMS</div>
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-            <span className="text-xs text-cyan-400 tracking-wider">SPEECH RECOGNITION</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-            <span className="text-xs text-cyan-400 tracking-wider">TTS ENGINE</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="text-xs text-cyan-400 tracking-wider">ANTHROPIC API</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Mini arc reactor logo */}
-      <div className="flex justify-center">
-        <svg width="40" height="40" viewBox="0 0 40 40">
-          <circle cx="20" cy="20" r="18" fill="none" stroke="#00d4ff" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 3" />
-          <circle cx="20" cy="20" r="12" fill="none" stroke="#00d4ff" strokeWidth="1" strokeOpacity="0.5" />
-          <circle cx="20" cy="20" r="6" fill="#00d4ff" fillOpacity="0.3" />
-          <circle cx="20" cy="20" r="3" fill="#00d4ff" fillOpacity="0.9" style={{ filter: 'drop-shadow(0 0 4px #00d4ff)' }} />
+    <>
+      {/* Date circle — top left */}
+      <div className="absolute" style={{ left: 24, top: 90 }}>
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="36" fill="none" stroke="#00d4ff" strokeWidth="1" strokeOpacity="0.3" />
+          <circle cx="40" cy="40" r="36" fill="none" stroke="#00d4ff" strokeWidth="1" strokeOpacity="0.15" strokeDasharray="4 6" />
+          <text x="40" y="36" textAnchor="middle" dominantBaseline="middle"
+            fontSize="9" fontFamily="'Space Mono',monospace" fill="#00d4ff" fillOpacity="0.6" letterSpacing="2">
+            {date.month}
+          </text>
+          <text x="40" y="52" textAnchor="middle" dominantBaseline="middle"
+            fontSize="20" fontFamily="'Space Mono',monospace" fill="#00d4ff"
+            style={{ filter: 'drop-shadow(0 0 6px #00d4ff)' }}>
+            {date.day}
+          </text>
         </svg>
+        <div className="text-center font-mono text-[10px] tracking-widest text-cyan-600 mt-1">{date.dow}</div>
       </div>
-    </div>
+
+      {/* Storage bars */}
+      <div className="absolute" style={{ left: 24, top: 210 }}>
+        <div className="mb-3">
+          <div className="flex justify-between font-mono text-[10px] tracking-widest text-cyan-600 mb-1">
+            <span>PRIMARY STORAGE</span>
+            <span className="text-cyan-400">{storage.primary}%</span>
+          </div>
+          <div className="w-32 h-0.5 bg-cyan-900/60 relative">
+            <div
+              className="absolute top-0 left-0 h-full bg-cyan-500"
+              style={{ width: `${storage.primary}%`, boxShadow: '0 0 4px #00d4ff' }}
+            />
+          </div>
+        </div>
+        <div>
+          <div className="flex justify-between font-mono text-[10px] tracking-widest text-cyan-600 mb-1">
+            <span>FREE CAPACITY</span>
+            <span className="text-cyan-400">{storage.free}%</span>
+          </div>
+          <div className="w-32 h-0.5 bg-cyan-900/60 relative">
+            <div
+              className="absolute top-0 left-0 h-full bg-cyan-700"
+              style={{ width: `${storage.free}%`, boxShadow: '0 0 3px #00d4ff' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Power gauge circle */}
+      <div className="absolute" style={{ left: 24, top: 310 }}>
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="28" fill="none" stroke="#00d4ff" strokeWidth="0.8" strokeOpacity="0.15" />
+          <path
+            d={gaugePath(power, 26, 32, 32)}
+            fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round"
+            style={{ filter: 'drop-shadow(0 0 4px #00d4ff)' }}
+          />
+          <text x="32" y="30" textAnchor="middle" dominantBaseline="middle"
+            fontSize="11" fontFamily="'Space Mono',monospace" fill="#00d4ff"
+            style={{ filter: 'drop-shadow(0 0 4px #00d4ff)' }}>
+            {power}%
+          </text>
+          <text x="32" y="44" textAnchor="middle" dominantBaseline="middle"
+            fontSize="7" fontFamily="'Space Mono',monospace" fill="#00d4ff" fillOpacity="0.5" letterSpacing="1">
+            PWR
+          </text>
+        </svg>
+        <div className="font-mono text-[10px] tracking-widest text-cyan-600 text-center mt-1">POWER</div>
+      </div>
+
+      {/* Status dots */}
+      <div className="absolute" style={{ left: 24, top: 420 }}>
+        <div className="flex flex-col gap-2">
+          {[
+            { label: 'AI CORE', color: stateColor },
+            { label: 'NETWORK', color: '#00d4ff' },
+            { label: 'VOICE', color: '#00d4ff' },
+          ].map(({ label, color }) => (
+            <div key={label} className="flex items-center gap-2">
+              <div
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}` }}
+              />
+              <span className="font-mono text-[10px] tracking-widest" style={{ color: '#0077aa' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 font-mono text-[10px] tracking-widest text-cyan-600">
+          {stateLabel}
+        </div>
+      </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 type HUDState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -11,191 +11,192 @@ interface ArcReactorProps {
 const NUM_BARS = 32;
 
 export default function ArcReactor({ state }: ArcReactorProps) {
-  const barsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const barsRef = useRef<(SVGRectElement | null)[]>([]);
   const animFrameRef = useRef<number | null>(null);
+  const [time, setTime] = useState('');
 
+  // Clock
+  useEffect(() => {
+    const tick = () => setTime(new Date().toTimeString().slice(0, 8));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Waveform animation via requestAnimationFrame
   useEffect(() => {
     const bars = barsRef.current;
-
-    const animateBars = () => {
+    const animate = () => {
+      const t = Date.now() / 1000;
       bars.forEach((bar, i) => {
         if (!bar) return;
-        let height = 4;
-        const t = Date.now() / 1000;
-
+        let h: number;
         if (state === 'speaking') {
-          height = 6 + Math.abs(Math.sin(t * 8 + i * 0.5)) * 28 + Math.random() * 12;
+          h = 4 + Math.abs(Math.sin(t * 9 + i * 0.55)) * 32 + Math.random() * 10;
         } else if (state === 'listening') {
-          height = 4 + Math.abs(Math.sin(t * 4 + i * 0.4)) * 14;
+          h = 3 + Math.abs(Math.sin(t * 4.5 + i * 0.45)) * 16;
         } else if (state === 'thinking') {
-          height = 4 + Math.abs(Math.sin(t * 1.5 + i * 0.3)) * 8;
+          h = 3 + Math.abs(Math.sin(t * 1.2 + i * 0.3)) * 8;
         } else {
-          height = 3 + Math.abs(Math.sin(t * 0.8 + i * 0.2)) * 3;
+          h = 2 + Math.abs(Math.sin(t * 0.7 + i * 0.25)) * 2.5;
         }
-
-        bar.style.height = `${Math.min(height, 40)}px`;
+        h = Math.min(h, 40);
+        bar.setAttribute('height', String(h));
+        // Shift bar upward from baseline by half height (bars grow inward)
+        bar.setAttribute('y', String(-h));
       });
-
-      animFrameRef.current = requestAnimationFrame(animateBars);
+      animFrameRef.current = requestAnimationFrame(animate);
     };
-
-    animFrameRef.current = requestAnimationFrame(animateBars);
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    };
+    animFrameRef.current = requestAnimationFrame(animate);
+    return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
   }, [state]);
 
-  const getBarColor = () => {
-    if (state === 'speaking') return '#00d4ff';
-    if (state === 'listening') return '#00ff88';
-    if (state === 'thinking') return '#ff9900';
-    return '#0088cc';
-  };
+  const barColor = state === 'speaking' ? '#00d4ff'
+    : state === 'listening' ? '#00ff88'
+    : state === 'thinking' ? '#ff9900'
+    : '#0077aa';
 
-  const getCoreColor = () => {
-    if (state === 'speaking') return '#00d4ff';
-    if (state === 'listening') return '#00ff88';
-    if (state === 'thinking') return '#ff9900';
-    return '#0066aa';
-  };
+  const barGlow = state === 'speaking' ? '0 0 8px #00d4ff, 0 0 16px #00d4ff'
+    : state === 'listening' ? '0 0 6px #00ff88'
+    : state === 'thinking' ? '0 0 5px #ff9900'
+    : 'none';
 
-  const getRingSpeed = (base: number) => {
-    if (state === 'speaking') return base * 0.3;
-    if (state === 'thinking') return base * 2;
-    return base;
-  };
+  const barOpacity = state === 'idle' ? 0.3 : 0.9;
 
-  const barColor = getBarColor();
-  const coreColor = getCoreColor();
-  const size = 320;
-  const cx = size / 2;
-  const cy = size / 2;
+  // Size is set by CSS (60vmin) but SVG uses viewBox 400x400
+  const VB = 400;
+  const cx = VB / 2;
+  const cy = VB / 2;
+  const waveR = 148; // radius of waveform ring ~74% of 200
+
+  // Concentric circle radii
+  const rings = [190, 170, 148, 110, 80, 55, 36];
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      {/* Rings */}
+    <div
+      style={{
+        width: '60vmin',
+        height: '60vmin',
+        position: 'relative',
+        flexShrink: 0,
+      }}
+    >
       <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="absolute inset-0"
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${VB} ${VB}`}
         style={{ overflow: 'visible' }}
       >
-        {/* Ring 1 — outermost */}
-        <g style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          animation: `ring-spin-cw ${getRingSpeed(12)}s linear infinite`,
-        }}>
-          <circle cx={cx} cy={cy} r={148} fill="none" stroke={barColor} strokeWidth="1" strokeOpacity="0.3"
-            strokeDasharray="8 6" />
-          {[0, 90, 180, 270].map((deg) => (
-            <rect key={deg} x={cx - 3} y={cy - 150} width="6" height="6"
-              fill={barColor} fillOpacity="0.6"
-              transform={`rotate(${deg} ${cx} ${cy})`} />
-          ))}
-        </g>
-
-        {/* Ring 2 */}
-        <g style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          animation: `ring-spin-ccw ${getRingSpeed(9)}s linear infinite`,
-        }}>
-          <circle cx={cx} cy={cy} r={126} fill="none" stroke={barColor} strokeWidth="1.5" strokeOpacity="0.4"
-            strokeDasharray="12 4" />
-          {[45, 135, 225, 315].map((deg) => (
-            <rect key={deg} x={cx - 2} y={cy - 128} width="4" height="8"
-              fill={barColor} fillOpacity="0.7"
-              transform={`rotate(${deg} ${cx} ${cy})`} />
-          ))}
-        </g>
-
-        {/* Ring 3 */}
-        <g style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          animation: `ring-spin-cw ${getRingSpeed(7)}s linear infinite`,
-        }}>
-          <circle cx={cx} cy={cy} r={104} fill="none" stroke={barColor} strokeWidth="1" strokeOpacity="0.5"
-            strokeDasharray="4 8" />
-          {[0, 60, 120, 180, 240, 300].map((deg) => (
-            <circle key={deg} cx={cx} cy={cy - 104} r="3" fill={barColor} fillOpacity="0.8"
-              transform={`rotate(${deg} ${cx} ${cy})`} />
-          ))}
-        </g>
-
-        {/* Ring 4 */}
-        <g style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          animation: `ring-spin-ccw ${getRingSpeed(5)}s linear infinite`,
-        }}>
-          <circle cx={cx} cy={cy} r={82} fill="none" stroke={barColor} strokeWidth="2" strokeOpacity="0.6"
-            strokeDasharray="16 4" />
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
-            <rect key={deg} x={cx - 1.5} y={cy - 84} width="3" height="5"
-              fill={barColor} fillOpacity="0.9"
-              transform={`rotate(${deg} ${cx} ${cy})`} />
-          ))}
-        </g>
-
-        {/* Ring 5 — innermost ring */}
-        <g style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          animation: `ring-spin-cw ${getRingSpeed(3)}s linear infinite`,
-        }}>
-          <circle cx={cx} cy={cy} r={60} fill="none" stroke={coreColor} strokeWidth="1.5" strokeOpacity="0.7"
-            strokeDasharray="6 3" />
-        </g>
-
-        {/* Glow layers on core */}
-        <circle cx={cx} cy={cy} r={52} fill={coreColor} fillOpacity="0.05" />
-        <circle cx={cx} cy={cy} r={42} fill={coreColor} fillOpacity="0.08" />
-
-        {/* Core */}
-        <circle cx={cx} cy={cy} r={34} fill="none" stroke={coreColor} strokeWidth="2" strokeOpacity="0.9"
-          style={{ filter: `drop-shadow(0 0 8px ${coreColor})` }} />
-        <circle cx={cx} cy={cy} r={26}
-          fill={coreColor} fillOpacity={state === 'speaking' ? 0.5 : state === 'thinking' ? 0.3 : 0.2}
-          style={{ filter: `drop-shadow(0 0 12px ${coreColor})`, animation: 'core-pulse 2s ease-in-out infinite' }} />
-        <circle cx={cx} cy={cy} r={14}
-          fill={coreColor} fillOpacity="0.9"
-          style={{ filter: `drop-shadow(0 0 16px ${coreColor}) drop-shadow(0 0 32px ${coreColor})` }} />
-        <circle cx={cx} cy={cy} r={6} fill="white" fillOpacity="0.95" />
-
-        {/* Cross hairs */}
-        <line x1={cx - 50} y1={cy} x2={cx - 62} y2={cy} stroke={barColor} strokeWidth="1" strokeOpacity="0.4" />
-        <line x1={cx + 50} y1={cy} x2={cx + 62} y2={cy} stroke={barColor} strokeWidth="1" strokeOpacity="0.4" />
-        <line x1={cx} y1={cy - 50} x2={cx} y2={cy - 62} stroke={barColor} strokeWidth="1" strokeOpacity="0.4" />
-        <line x1={cx} y1={cy + 50} x2={cx} y2={cy + 62} stroke={barColor} strokeWidth="1" strokeOpacity="0.4" />
-      </svg>
-
-      {/* 32 vertical audio bars arranged in a circle */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {Array.from({ length: NUM_BARS }).map((_, i) => {
-          const angle = (i / NUM_BARS) * 2 * Math.PI - Math.PI / 2;
-          const radius = 156;
-          const x = cx + radius * Math.cos(angle);
-          const y = cy + radius * Math.sin(angle);
-          const rotDeg = (i / NUM_BARS) * 360;
+        {/* Concentric background rings */}
+        {rings.map((r, idx) => {
+          const isWaveRing = r === waveR;
+          if (isWaveRing) return null;
+          const dashes = idx % 2 === 0 ? '6 5' : '3 8';
+          const opacity = 0.12 + idx * 0.04;
+          const sw = idx === 0 ? 0.8 : 1;
           return (
-            <div
-              key={i}
-              ref={(el) => { barsRef.current[i] = el; }}
-              style={{
-                position: 'absolute',
-                left: x,
-                top: y,
-                width: '3px',
-                height: '4px',
-                backgroundColor: barColor,
-                transform: `translate(-50%, -50%) rotate(${rotDeg}deg)`,
-                transformOrigin: 'center bottom',
-                boxShadow: `0 0 4px ${barColor}`,
-                transition: 'background-color 0.3s ease',
-                borderRadius: '1px',
-              }}
+            <circle
+              key={r}
+              cx={cx} cy={cy} r={r}
+              fill="none"
+              stroke="#00d4ff"
+              strokeWidth={sw}
+              strokeOpacity={opacity}
+              strokeDasharray={dashes}
             />
           );
         })}
-      </div>
+
+        {/* Rotating dashed gear ring */}
+        <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: 'ring-spin-ccw 18s linear infinite' }}>
+          <circle cx={cx} cy={cy} r={170} fill="none" stroke="#00d4ff" strokeWidth="0.8"
+            strokeOpacity="0.2" strokeDasharray="10 6" />
+        </g>
+
+        {/* Outer slow-spin ring with tick marks */}
+        <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: 'ring-spin-cw 30s linear infinite' }}>
+          <circle cx={cx} cy={cy} r={190} fill="none" stroke="#00d4ff" strokeWidth="0.7"
+            strokeOpacity="0.15" strokeDasharray="4 12" />
+          {Array.from({ length: 12 }).map((_, i) => {
+            const a = (i / 12) * Math.PI * 2;
+            const x1 = cx + 183 * Math.cos(a);
+            const y1 = cy + 183 * Math.sin(a);
+            const x2 = cx + 193 * Math.cos(a);
+            const y2 = cy + 193 * Math.sin(a);
+            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#00d4ff" strokeWidth="1" strokeOpacity="0.3" />;
+          })}
+        </g>
+
+        {/* Waveform bars — 32 SVG rect elements rotated around center */}
+        {Array.from({ length: NUM_BARS }).map((_, i) => {
+          const angleDeg = (i / NUM_BARS) * 360 - 90;
+          const angleRad = (angleDeg * Math.PI) / 180;
+          // Each bar is centered on the waveform ring radius
+          const bx = cx + waveR * Math.cos(angleRad);
+          const by = cy + waveR * Math.sin(angleRad);
+          return (
+            <g
+              key={i}
+              transform={`translate(${bx},${by}) rotate(${angleDeg + 90})`}
+            >
+              <rect
+                ref={el => { barsRef.current[i] = el; }}
+                x="-1.5"
+                y="0"
+                width="3"
+                height="3"
+                rx="1"
+                fill={barColor}
+                fillOpacity={barOpacity}
+                style={{ filter: state !== 'idle' ? `drop-shadow(${barGlow})` : 'none' }}
+              />
+            </g>
+          );
+        })}
+
+        {/* Inner rings */}
+        <circle cx={cx} cy={cy} r={110} fill="none" stroke="#00d4ff" strokeWidth="1" strokeOpacity="0.2" strokeDasharray="8 4" />
+        <circle cx={cx} cy={cy} r={80} fill="none" stroke="#00d4ff" strokeWidth="1" strokeOpacity="0.25" />
+
+        {/* Core glow fills */}
+        <circle cx={cx} cy={cy} r={55} fill="#00d4ff" fillOpacity="0.04" />
+        <circle cx={cx} cy={cy} r={42} fill="#00d4ff" fillOpacity="0.06" />
+
+        {/* Core ring */}
+        <circle cx={cx} cy={cy} r={36} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeOpacity="0.8"
+          style={{ filter: 'drop-shadow(0 0 6px #00d4ff)' }} />
+
+        {/* Inner pulse */}
+        <circle cx={cx} cy={cy} r={26}
+          fill="#00d4ff"
+          fillOpacity={state === 'speaking' ? 0.18 : 0.07}
+          style={{ animation: 'core-pulse 2.4s ease-in-out infinite' }}
+        />
+
+        {/* Time display in center */}
+        <text
+          x={cx} y={cy + 4}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="11"
+          fontFamily="'Space Mono', monospace"
+          fill="#00d4ff"
+          fillOpacity="0.9"
+          style={{ filter: 'drop-shadow(0 0 4px #00d4ff)', letterSpacing: '1px' }}
+        >
+          {time}
+        </text>
+
+        {/* Crosshair lines from core outward */}
+        {[0, 90, 180, 270].map(deg => {
+          const rad = (deg * Math.PI) / 180;
+          const x1 = cx + 38 * Math.cos(rad);
+          const y1 = cy + 38 * Math.sin(rad);
+          const x2 = cx + 54 * Math.cos(rad);
+          const y2 = cy + 54 * Math.sin(rad);
+          return <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#00d4ff" strokeWidth="0.8" strokeOpacity="0.4" />;
+        })}
+      </svg>
     </div>
   );
 }
