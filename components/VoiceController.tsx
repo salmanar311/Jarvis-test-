@@ -191,25 +191,49 @@ export default function VoiceController({
     speaking: "border-cyan-400 text-cyan-300 bg-cyan-900/20",
   }[hudState];
 
+  const glowColor = {
+    idle: "rgba(0,212,255,0.15)",
+    listening: "rgba(0,212,255,0.6)",
+    thinking: "rgba(0,212,255,0.2)",
+    speaking: "rgba(0,212,255,0.35)",
+  }[hudState];
+
+  const borderOpacity = { idle: 0.25, listening: 0.9, thinking: 0.3, speaking: 0.5 }[hudState];
+
   return (
     <div className="flex flex-col items-center gap-2">
       <button
         onClick={isActive ? stopListening : startListening}
         disabled={isDisabled}
-        className="flex items-center gap-2 px-5 py-2 border border-cyan-500/50 rounded font-mono text-xs tracking-widest transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-        style={
-          hudState === "listening"
-            ? { color: '#00d4ff', borderColor: '#00d4ff', boxShadow: '0 0 12px rgba(0,212,255,0.4)', background: 'rgba(0,212,255,0.08)' }
+        className="rounded-full transition-all duration-300 disabled:cursor-not-allowed"
+        style={{
+          width: 52,
+          height: 52,
+          border: `1.5px solid rgba(0,212,255,${borderOpacity})`,
+          background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`,
+          boxShadow: hudState === "listening"
+            ? "0 0 24px rgba(0,212,255,0.5), 0 0 48px rgba(0,212,255,0.2)"
             : hudState === "speaking"
-            ? { color: '#00aad4', borderColor: 'rgba(0,212,255,0.4)', background: 'rgba(0,212,255,0.05)' }
-            : { color: 'rgba(0,212,255,0.6)', background: 'rgba(0,212,255,0.03)' }
-        }
+            ? "0 0 16px rgba(0,212,255,0.3)"
+            : "0 0 8px rgba(0,212,255,0.1)",
+          animation: hudState === "listening" ? "core-pulse 0.8s ease-in-out infinite" : undefined,
+          position: "relative",
+        }}
       >
-        <Mic size={13} className={hudState === "listening" ? "animate-pulse" : ""} />
-        <span>{stateLabel}</span>
+        {/* Inner ring */}
+        <div className="absolute inset-2 rounded-full" style={{ border: `1px solid rgba(0,212,255,${borderOpacity * 0.6})` }} />
+        {/* Center dot */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="rounded-full" style={{
+            width: 8, height: 8,
+            background: "#00d4ff",
+            opacity: hudState === "idle" ? 0.4 : hudState === "listening" ? 1 : 0.6,
+            boxShadow: `0 0 ${hudState === "listening" ? 12 : 5}px #00d4ff`,
+          }} />
+        </div>
       </button>
       {!speechSupported && (
-        <div className="text-[10px] text-red-400/60 tracking-wider font-mono">VOICE UNSUPPORTED IN THIS BROWSER</div>
+        <div className="text-[9px] text-red-400/50 tracking-wider font-mono">UNSUPPORTED BROWSER</div>
       )}
     </div>
   );
