@@ -192,36 +192,24 @@ export default function VoiceController({
   }[hudState];
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2">
       <button
         onClick={isActive ? stopListening : startListening}
         disabled={isDisabled}
-        className={`w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${buttonColor}`}
+        className="flex items-center gap-2 px-5 py-2 border border-cyan-500/50 rounded font-mono text-xs tracking-widest transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         style={
           hudState === "listening"
-            ? { boxShadow: "0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,212,255,0.3)" }
+            ? { color: '#00d4ff', borderColor: '#00d4ff', boxShadow: '0 0 12px rgba(0,212,255,0.4)', background: 'rgba(0,212,255,0.08)' }
             : hudState === "speaking"
-            ? { boxShadow: "0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,212,255,0.3)" }
-            : {}
+            ? { color: '#00aad4', borderColor: 'rgba(0,212,255,0.4)', background: 'rgba(0,212,255,0.05)' }
+            : { color: 'rgba(0,212,255,0.6)', background: 'rgba(0,212,255,0.03)' }
         }
       >
-        <Mic size={28} className={hudState === "listening" ? "animate-pulse" : ""} />
+        <Mic size={13} className={hudState === "listening" ? "animate-pulse" : ""} />
+        <span>{stateLabel}</span>
       </button>
-      <div
-        className={`text-xs tracking-[0.3em] font-mono font-bold transition-colors duration-300 ${
-          hudState === "listening"
-            ? "text-cyan-300"
-            : hudState === "thinking"
-            ? "text-cyan-500"
-            : hudState === "speaking"
-            ? "text-cyan-300"
-            : "text-cyan-600"
-        }`}
-      >
-        {stateLabel}
-      </div>
       {!speechSupported && (
-        <div className="text-xs text-red-400 tracking-wider">VOICE UNSUPPORTED</div>
+        <div className="text-[10px] text-red-400/60 tracking-wider font-mono">VOICE UNSUPPORTED IN THIS BROWSER</div>
       )}
     </div>
   );
