@@ -5,9 +5,9 @@ function cleanForSpeech(text: string): string {
   return text
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
-    .replace(/`{1,3}(.*?)`{1,3}/gs, "$1")
+    .replace(/`{1,3}[\s\S]*?`{1,3}/g, "")
     .replace(/#{1,6}\s+/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/[-–—]{2,}/g, " — ")
     .replace(/\n{2,}/g, ". ")
     .replace(/\n/g, " ")
