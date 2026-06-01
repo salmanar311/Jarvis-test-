@@ -1,5 +1,5 @@
-import JarvisInterface from "@/components/JarvisInterface";
+import JarvisHUD from "@/components/JarvisHUD";
 
 export default function Home() {
-  return <JarvisInterface />;
+  return <JarvisHUD />;
 }
