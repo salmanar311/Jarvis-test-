@@ -26,10 +26,70 @@ export default function JarvisHUD() {
   const [flickerOn, setFlickerOn] = useState(false);
   const [bootText, setBootText] = useState("");
   const voiceRef = useRef<{ startListening: () => void } | null>(null);
+  const bootPhaseRef = useRef<BootPhase>("cold");
+  const lastClapRef = useRef<number>(0);
+  const clapFrameRef = useRef<number | null>(null);
+  const clapCtxRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => { bootPhaseRef.current = bootPhase; }, [bootPhase]);
 
   useEffect(() => {
     setApiKey(localStorage.getItem("jarvis_api_key") || "");
     setElevenLabsKey(localStorage.getItem("jarvis_elevenlabs_key") || "");
+  }, []);
+
+  // Clap detection active from cold state onward
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    const start = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        clapCtxRef.current = ctx;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        let prevAvg = 0;
+        const detect = () => {
+          analyser.getByteFrequencyData(data);
+          const avg = data.reduce((a, b) => a + b, 0) / data.length;
+          const now = Date.now();
+          if (avg > prevAvg * 3 && avg > 30 && now - lastClapRef.current > 1500) {
+            lastClapRef.current = now;
+            const phase = bootPhaseRef.current;
+            if (phase === "cold") {
+              // Boot the system via programmatic click simulation
+              setBootPhase("flicker");
+              const flickers = [0, 80, 140, 200, 240, 320, 360, 420, 460, 520, 560, 600, 640, 700];
+              flickers.forEach((t, i) => setTimeout(() => setFlickerOn(i % 2 === 0), t));
+              setTimeout(() => { setFlickerOn(true); setBootPhase("powering"); setBootText("INITIALIZING..."); }, 750);
+              setTimeout(() => setBootText("LOADING NEURAL MATRIX..."), 1100);
+              setTimeout(() => setBootText("CALIBRATING VOICE SYSTEMS..."), 1500);
+              setTimeout(() => setBootText("ALL SYSTEMS NOMINAL"), 1900);
+              setTimeout(() => { setBootPhase("live"); setBootText(""); }, 2400);
+              setTimeout(() => setHudState("listening"), 2600);
+            } else if (phase === "live") {
+              // Already booted — trigger listening if idle
+              setHudState((prev) => { if (prev === "idle") { voiceRef.current?.startListening(); } return prev; });
+            }
+          }
+          prevAvg = avg * 0.3 + prevAvg * 0.7;
+          clapFrameRef.current = requestAnimationFrame(detect);
+        };
+        detect();
+      } catch {
+        // Mic permission denied — silent fail
+      }
+    };
+    start();
+    return () => {
+      if (clapFrameRef.current) cancelAnimationFrame(clapFrameRef.current);
+      clapCtxRef.current?.close();
+      stream?.getTracks().forEach(t => t.stop());
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePowerOn = () => {
@@ -90,11 +150,17 @@ export default function JarvisHUD() {
           <svg width="340" height="340" viewBox="0 0 340 340">
             {[165, 140, 115, 92, 70].map((r, i) => (
               <circle key={i} cx="170" cy="170" r={r} fill="none" stroke="#00d4ff"
-                strokeWidth="0.5" strokeOpacity={bootPhase === "flicker" && flickerOn ? 0.12 + i * 0.02 : 0.03}
+                strokeWidth="0.5" strokeOpacity={bootPhase === "flicker" && flickerOn ? 0.12 + i * 0.02 : 0.06 + i * 0.015}
                 strokeDasharray={i % 2 === 0 ? "4 8" : "none"}
                 style={{ transition: "stroke-opacity 0.05s" }} />
             ))}
           </svg>
+        </div>
+
+        {/* Clap hint text */}
+        <div className="absolute font-mono text-[9px] tracking-[0.4em] text-cyan-700/60"
+          style={{ top: "calc(50% + 60px)", left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap" }}>
+          TAP OR CLAP TO ACTIVATE
         </div>
 
         {/* The button */}
@@ -104,27 +170,28 @@ export default function JarvisHUD() {
           className="relative z-10 rounded-full"
           style={{
             width: 72, height: 72,
-            border: `1.5px solid rgba(0,212,255,${bootPhase === "flicker" && flickerOn ? 0.9 : 0.25})`,
+            border: `1.5px solid rgba(0,212,255,${bootPhase === "flicker" && flickerOn ? 0.9 : 0.55})`,
             background: bootPhase === "flicker" && flickerOn
               ? "radial-gradient(circle, rgba(0,212,255,0.2) 0%, transparent 70%)"
-              : "radial-gradient(circle, rgba(0,212,255,0.04) 0%, transparent 70%)",
+              : "radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%)",
             boxShadow: bootPhase === "flicker" && flickerOn
               ? "0 0 40px rgba(0,212,255,0.6), 0 0 80px rgba(0,212,255,0.3)"
-              : "0 0 8px rgba(0,212,255,0.08)",
+              : "0 0 20px rgba(0,212,255,0.25), 0 0 40px rgba(0,212,255,0.1)",
             transition: "all 0.04s",
             cursor: bootPhase === "cold" ? "pointer" : "default",
+            animation: bootPhase === "cold" ? "core-pulse 2.4s ease-in-out infinite" : undefined,
           }}
         >
           <div className="absolute inset-2 rounded-full" style={{
-            border: `1px solid rgba(0,212,255,${bootPhase === "flicker" && flickerOn ? 0.5 : 0.1})`,
+            border: `1px solid rgba(0,212,255,${bootPhase === "flicker" && flickerOn ? 0.5 : 0.3})`,
             transition: "all 0.04s",
           }} />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="rounded-full" style={{
               width: 10, height: 10,
               background: "#00d4ff",
-              opacity: bootPhase === "flicker" && flickerOn ? 1 : 0.3,
-              boxShadow: bootPhase === "flicker" && flickerOn ? "0 0 20px #00d4ff, 0 0 40px #00d4ff" : "0 0 4px #00d4ff",
+              opacity: bootPhase === "flicker" && flickerOn ? 1 : 0.7,
+              boxShadow: bootPhase === "flicker" && flickerOn ? "0 0 20px #00d4ff, 0 0 40px #00d4ff" : "0 0 10px #00d4ff, 0 0 20px #00d4ff",
               transition: "all 0.04s",
             }} />
           </div>
